@@ -85,11 +85,13 @@ The chat UI is [`webui/index.html`](./webui/index.html); it carries the network'
 
 | Phase | What | Status |
 |---|---|---|
-| **0** | Foundation: whitepaper, constitution, governance, license | ◀ **you are here** |
-| 1 | Volunteer compute network + node-client + distributed inference demo | planned |
-| 2 | Decentralized training (Hivemind) + model registry + policy engine | planned |
-| 3 | Bounded self-improvement behind a validation gate (human-in-the-loop) | planned |
+| **0** | Foundation: whitepaper, constitution, governance, license | ✅ done |
+| 1 | Volunteer compute network + real federated node daemon + distributed inference | ✅ reference built |
+| 2 | Decentralized training + signed model registry + federated self-improvement | ✅ reference built |
+| 3 | Bounded self-improvement behind a validation gate (human-in-the-loop) | ✅ reference built |
 | 4 | North-star: more autonomous self-improvement — only if alignment keeps pace | research |
+
+> "Reference built" means it runs and is tested on one-or-few machines today; scaling to the open internet needs the hardening listed under *What's still pending* below (libp2p transport, Petals/Hivemind for large models).
 
 Full roadmap: [ROADMAP.md](./ROADMAP.md).
 
@@ -117,14 +119,13 @@ Full roadmap: [ROADMAP.md](./ROADMAP.md).
 │   └── policy_engine.py       ← enforces R1/R2 on tasks & outputs
 ├── node-client/
 │   └── gua_node.py            ← consent/caps/kill-switch state machine (tested)
-├── network/                   ← (Phase 1) P2P, scheduler, discovery
-├── training/                  ← (Phase 2) decentralized training pipeline
-├── tests/                     ← pytest suite (governance, policy, node, backend)
-└── docs/
-    └── node-client-spec.md    ← detailed Phase 1 client spec
+├── network/                   ← real node daemon, replication, scheduler, federated improvement
+├── training/                  ← federated training, validation gate, signed registry, self-training
+├── tests/                     ← pytest suite (80+ tests; CI on Python 3.10–3.12)
+└── docs/                      ← node-client spec, DISTRIBUTED_DESIGN, THREAT_MODEL, …
 ```
 
-> `network/` and `training/` (Phase 1–2) currently contain placeholder `README.md` files describing what will live there.
+> `network/` and `training/` contain runnable, **tested** reference implementations — the node daemon, model replication, federated self-improvement, and the training/validation pipeline. Try `demo_network.bat`, `demo_resilience.bat`, and `demo_improvement.bat`.
 
 ## Run the code (Phase 0 reference implementation)
 
@@ -171,14 +172,15 @@ the UI), and a **real kill-switch** wired from the UI to the backend. Point
 ruleset, starts the bridge + web UI, and opens the browser. (Have Ollama running
 with `ollama pull llama3.2` first.)
 
-What's still pending: full libp2p P2P (vs. the single bootstrap coordinator),
-container/WASM sandbox hardening, and real large-model fine-tuning.
+Also shipped: a **native tool-using assistant** (decides on its own when to search/read the web, cites sources), a **real cross-machine node daemon** (content-addressed model replication — the model survives any node hitting its kill-switch), **federated signed self-improvement** (👍 feedback → gated retrain → signed → propagates, so more nodes make it smarter), and **bounded self-training** behind a validation gate. See [`docs/DISTRIBUTED_DESIGN.md`](./docs/DISTRIBUTED_DESIGN.md) and [`docs/THREAT_MODEL.md`](./docs/THREAT_MODEL.md).
+
+What's still pending: full **libp2p P2P + NAT traversal** (vs. explicit IP:port peering), **channel encryption**, container/WASM sandbox hardening, a trained **safety classifier** (vs. the keyword-stub policy), and integrating **Petals/Hivemind** for internet-scale large-model training.
 
 ## Status & how to help
 
-This is **Phase 0** — the foundation. There is no runnable network yet; the goal right now is a clear, credible, well-governed project that people can understand and join.
+The Phase 0 foundation is complete, and Phases 1–3 now have **runnable, tested reference implementations**. The next milestone is hardening the transport (libp2p) and integrating large-model frameworks so the network scales to many machines over the open internet.
 
-The most useful contributions today: review the [whitepaper](./WHITEPAPER.md) and [constitution](./CONSTITUTION.md), open issues on the design, and help shape the Phase 1 node-client spec. See [CONTRIBUTING.md](./CONTRIBUTING.md).
+The most useful contributions today: harden the node transport (libp2p/NAT traversal), add chunked blob streaming, replace the keyword policy stub with a real safety classifier, or integrate Petals. Good starting points are in [`docs/GOOD_FIRST_ISSUES.md`](./docs/GOOD_FIRST_ISSUES.md); see also [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## License
 
