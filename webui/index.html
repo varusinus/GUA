@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GUA — General Universal Agent</title>
+<style>
+  :root{
+    --bg:#f5f4ef; --panel:#ffffff; --ink:#1f1d1a; --muted:#6b6760;
+    --line:#e7e4dd; --accent:#c96442; --accent-ink:#fff;
+    --user-bubble:#ece8e0; --ok:#3f8f5b; --warn:#c0892b; --stop:#c0392b;
+    --radius:14px; --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{font-family:var(--font);color:var(--ink);background:var(--bg);
+       display:grid;grid-template-columns:248px 1fr 300px;height:100vh;overflow:hidden}
+  button{font-family:inherit;cursor:pointer}
+
+  /* ---------- Sidebar ---------- */
+  .side{background:#efece4;border-right:1px solid var(--line);display:flex;flex-direction:column;padding:14px}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:16px;padding:6px 6px 14px}
+  .logo{width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center;color:#fff;font-weight:800;font-size:14px}
+  .newchat{display:flex;align-items:center;gap:8px;width:100%;border:1px solid var(--line);background:var(--panel);
+           color:var(--ink);padding:9px 11px;border-radius:10px;font-size:14px;font-weight:600}
+  .newchat:hover{background:#fff}
+  .conv-label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:16px 6px 6px}
+  .conv{padding:8px 10px;border-radius:9px;font-size:13.5px;color:#46423b;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .conv:hover{background:#e6e2d9}
+  .conv.active{background:#e0dccf;font-weight:600}
+  .side-foot{margin-top:auto;font-size:11px;color:var(--muted);padding:10px 6px 2px;border-top:1px solid var(--line)}
+
+  /* ---------- Chat ---------- */
+  .main{display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}
+  .topbar{display:flex;align-items:center;gap:10px;padding:12px 20px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.6)}
+  .model{font-weight:600;font-size:14px}
+  .pill{font-size:11px;padding:3px 9px;border-radius:999px;font-weight:600}
+  .pill.demo{background:#f3e7c9;color:#8a6d1f}
+  .pill.rules{background:#e2efe6;color:var(--ok)}
+  .spacer{flex:1}
+  .thread{flex:1;overflow-y:auto;min-height:0;padding:26px 0}
+  .row{max-width:720px;margin:0 auto;padding:0 24px 26px;display:flex;gap:14px;align-items:flex-start}
+  .av{width:30px;height:30px;border-radius:8px;flex:none;display:grid;place-items:center;font-size:12px;font-weight:700;color:#fff}
+  .av.gua{background:var(--accent)} .av.me{background:#7a756c}
+  .msg{font-size:15.5px;line-height:1.65}
+  .msg p{margin:0 0 10px} .msg p:last-child{margin:0}
+  .msg.user{background:var(--user-bubble);padding:11px 15px;border-radius:12px}
+  .msg code{background:#ece8e0;padding:1px 5px;border-radius:5px;font-size:13px}
+  .msg .small{font-size:12.5px;color:var(--muted)}
+  .typing span{display:inline-block;width:6px;height:6px;margin-right:3px;border-radius:50%;background:var(--muted);animation:b 1.2s infinite}
+  .typing span:nth-child(2){animation-delay:.2s}.typing span:nth-child(3){animation-delay:.4s}
+  @keyframes b{0%,60%,100%{opacity:.25}30%{opacity:1}}
+
+  .composer{max-width:720px;margin:0 auto;width:100%;padding:0 24px 20px}
+  .box{border:1px solid var(--line);background:var(--panel);border-radius:var(--radius);padding:10px 12px;display:flex;gap:10px;align-items:flex-end;box-shadow:0 2px 10px rgba(0,0,0,.03)}
+  textarea{flex:1;border:0;outline:0;resize:none;font-family:inherit;font-size:15px;line-height:1.5;max-height:160px;background:transparent;color:var(--ink)}
+  .send{background:var(--accent);color:#fff;border:0;border-radius:9px;width:36px;height:36px;font-size:17px;flex:none;display:grid;place-items:center}
+  .send:disabled{opacity:.4;cursor:default}
+  .disclaimer{max-width:720px;margin:6px auto 0;padding:0 24px;font-size:11.5px;color:var(--muted);text-align:center}
+
+  /* ---------- Right node panel ---------- */
+  .node{background:var(--panel);border-left:1px solid var(--line);padding:16px;overflow-y:auto}
+  .card{border:1px solid var(--line);border-radius:12px;padding:13px;margin-bottom:14px}
+  .card h3{margin:0 0 4px;font-size:13px;letter-spacing:.02em}
+  .card .sub{font-size:11.5px;color:var(--muted);margin-bottom:10px}
+  .statusline{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;margin-bottom:10px}
+  .dot{width:9px;height:9px;border-radius:50%}
+  .dot.off{background:#bdb8ae}.dot.idle{background:var(--ok)}.dot.busy{background:var(--warn);animation:pulse 1s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .toggle{display:flex;align-items:center;justify-content:space-between;font-size:13.5px;font-weight:600}
+  .switch{position:relative;width:42px;height:24px;flex:none}
+  .switch input{opacity:0;width:0;height:0}
+  .slider{position:absolute;inset:0;background:#cdc8bd;border-radius:999px;transition:.2s}
+  .slider:before{content:"";position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
+  input:checked+.slider{background:var(--ok)} input:checked+.slider:before{transform:translateX(18px)}
+  .meter{height:7px;background:#ece8e0;border-radius:999px;overflow:hidden;margin:6px 0}
+  .meter>i{display:block;height:100%;width:0;background:var(--accent);transition:width .4s}
+  .kv{display:flex;justify-content:space-between;font-size:12.5px;margin:4px 0;color:#46423b}
+  .kv b{font-variant-numeric:tabular-nums}
+  label.cap{font-size:12px;color:var(--muted);display:block;margin:10px 0 2px}
+  input[type=range]{width:100%}
+  .stop{width:100%;background:var(--stop);color:#fff;border:0;border-radius:10px;padding:11px;font-weight:700;font-size:14px;letter-spacing:.02em}
+  .stop:hover{filter:brightness(.95)}
+  .stop.armed{background:#7d241a}
+  .rule{display:flex;gap:8px;font-size:12.5px;padding:5px 0;border-bottom:1px dashed var(--line)}
+  .rule:last-child{border:0}
+  .rule .n{font-weight:700;color:var(--accent)}
+  .tag{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;background:#efe6df;color:#8a5a44;padding:1px 5px;border-radius:4px;align-self:center}
+  /* capability rows */
+  .cap-item{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:4px 0}
+  .cap-dot{width:8px;height:8px;border-radius:50%;flex:none}
+  .cap-dot.on{background:var(--ok)} .cap-dot.off{background:#cdc8bd}
+  .cap-item .soon{margin-left:auto;font-size:9.5px;font-weight:700;text-transform:uppercase;color:#a08a44;background:#f3eccf;padding:1px 5px;border-radius:4px}
+  /* feedback buttons under a reply */
+  .fb{display:flex;gap:6px;margin-top:8px}
+  .fb button{border:1px solid var(--line);background:var(--panel);border-radius:7px;padding:2px 9px;font-size:13px;color:var(--muted)}
+  .fb button:hover{background:#f3f0e9}
+  .fb button.picked{border-color:var(--accent);color:var(--accent);font-weight:700}
+  /* conversation row with controls */
+  .conv-row{display:flex;align-items:center;gap:4px}
+  .conv-row .conv{flex:1}
+  .conv-row .cbtn{opacity:0;border:0;background:transparent;color:var(--muted);font-size:12px;padding:2px 4px;border-radius:5px}
+  .conv-row:hover .cbtn{opacity:1}
+  .conv-row .cbtn:hover{background:#ded9ce;color:var(--ink)}
+  @media(max-width:1024px){body{grid-template-columns:1fr}.side,.node{display:none}}
+</style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="side">
+    <div class="brand"><span class="logo">G</span> GUA</div>
+    <button class="newchat" onclick="newChat()">＋ New chat</button>
+    <div class="conv-label">Conversations</div>
+    <div id="convList"></div>
+    <div class="side-foot">General Universal Agent · open · AGPL-3.0<br>Your chats are saved and persist across restarts.</div>
+  </aside>
+
+  <!-- Chat -->
+  <main class="main">
+    <div class="topbar">
+      <span class="model">GUA-Open</span>
+      <span class="pill demo" id="modePill">Demo mode · no model connected</span>
+      <span class="spacer"></span>
+      <span class="pill rules">● Rules R1–R10 active</span>
+    </div>
+    <div class="thread" id="thread"></div>
+    <div class="composer">
+      <div class="box">
+        <textarea id="input" rows="1" placeholder="Message GUA…" oninput="autosize(this)" onkeydown="onKey(event)"></textarea>
+        <button class="send" id="send" onclick="sendMsg()">↑</button>
+      </div>
+      <div class="disclaimer" id="disclaimer">This is a Phase-0 interface shell. Replies are simulated locally; no AI model is connected yet. Your compute is never used without the opt-in on the right.</div>
+    </div>
+  </main>
+
+  <!-- Node / contribution panel -->
+  <aside class="node">
+    <div class="card">
+      <h3>Contribute compute</h3>
+      <div class="sub">Donating your spare compute to the network arrives with the peer-to-peer release. <b>Not active yet</b> — your CPU is not being used for the network. The live numbers below are real.</div>
+    </div>
+
+    <div class="card">
+      <h3>Control</h3>
+      <div class="sub">Local kill-switch — guaranteed. Stops this node instantly.</div>
+      <button class="stop" id="stop" onclick="killSwitch()">■ STOP THIS NODE</button>
+    </div>
+
+    <div class="card">
+      <h3>This GUA node (live)</h3>
+      <div class="sub" id="liveSub">Connecting to your local bridge…</div>
+      <div class="kv"><span>Model</span><b id="liveModel">—</b></div>
+      <div class="kv"><span>GUA version</span><b id="liveVer">—</b></div>
+      <div class="kv"><span>Nodes connected</span><b id="liveNodes">—</b></div>
+      <div class="kv"><span>Messages served</span><b id="liveMsgs">0</b></div>
+      <div class="kv"><span>Node inferences</span><b id="liveWork">0</b></div>
+      <div class="kv"><span>Memory saved</span><b id="liveMem">0 turns</b></div>
+      <div class="sub" style="margin-top:8px">"Nodes connected" counts this machine plus peers that answer a live ping. The version advances when a genuinely new model is built or fine-tuned, not by a button.</div>
+    </div>
+
+    <div class="card">
+      <h3>Self-improvement</h3>
+      <div class="sub">GUA learns from the replies you rate 👍. It retrains, passes a safety gate, and only then becomes the new model (R5).</div>
+      <div class="kv"><span>Good ratings 👍</span><b id="fbUp">0</b></div>
+      <div class="kv"><span>Bad ratings 👎</span><b id="fbDown">0</b></div>
+      <button class="newchat" style="justify-content:center;margin-top:10px" id="improveBtn" onclick="selfImprove()">⟳ Improve from feedback</button>
+      <div class="sub" id="improveMsg" style="margin-top:8px"></div>
+    </div>
+
+    <div class="card">
+      <h3>Capabilities</h3>
+      <div class="sub">What the engine can do now. New abilities appear here as GUA grows.</div>
+      <div id="capList"></div>
+    </div>
+
+    <div class="card">
+      <h3>Active rules</h3>
+      <div class="sub">Loaded live from the signed ruleset the node enforces.</div>
+      <div id="ruleList"></div>
+    </div>
+  </aside>
+
+<script>
+/* ============================================================
+   GUA interface shell — Phase 0.
+   All replies are simulated locally. To connect a real model,
+   replace generateReply() with a call to the GUA network
+   inference endpoint (see webui/README.md → "Connecting a backend").
+   ============================================================ */
+
+const thread = document.getElementById('input') ? document.getElementById('thread') : null;
+let busy = false, contributing = false, killed = false, units = 0, tick = null;
+
+/* ---- Chat ---- */
+function autosize(t){ t.style.height='auto'; t.style.height=Math.min(t.scrollHeight,160)+'px'; }
+function onKey(e){ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendMsg(); } }
+function newChat(){
+  fetch(GUA_BRIDGE+'/conversations/new',{method:'POST'})
+    .then(()=>{ document.getElementById('thread').innerHTML=''; greet(); refreshConvs(); })
+    .catch(()=>{ document.getElementById('thread').innerHTML=''; greet(); });
+}
+function askExample(q){ document.getElementById('input').value=q; sendMsg(); }
+
+function addRow(who, html){
+  const t=document.getElementById('thread');
+  const row=document.createElement('div'); row.className='row';
+  row.innerHTML = who==='me'
+    ? `<div class="av me">You</div><div class="msg user">${html}</div>`
+    : `<div class="av gua">G</div><div class="msg">${html}</div>`;
+  t.appendChild(row); t.scrollTop=t.scrollHeight; return row;
+}
+
+const GUA_BRIDGE='http://127.0.0.1:8754';  // local backend (webui/backend/server.py)
+
+function finish(typing, html){
+  typing.querySelector('.msg').innerHTML = html;
+  busy=false; document.getElementById('send').disabled=false;
+  document.getElementById('thread').scrollTop=1e9;
+}
+
+function sendMsg(){
+  if(busy) return;
+  const inp=document.getElementById('input'); const text=inp.value.trim();
+  if(!text) return;
+  addRow('me', escapeHtml(text)); inp.value=''; autosize(inp);
+  busy=true; document.getElementById('send').disabled=true;
+  const typing=addRow('gua', `<div class="typing"><span></span><span></span><span></span></div>`);
+
+  // Try the real backend bridge; gracefully fall back to local simulation.
+  const ctrl=new AbortController(); const t=setTimeout(()=>ctrl.abort(),240000);
+  fetch(GUA_BRIDGE+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({message:text}),signal:ctrl.signal})
+    .then(r=>r.json()).then(d=>{ clearTimeout(t);
+      let meta='';
+      if(d.refused) meta=`<p class="small">Refused by rule ${d.rule||'policy'}.</p>`;
+      else if(d.tools_used && d.tools_used.length) meta=`<p class="small">🌐 Used: ${d.tools_used.join(', ')}.</p>`;
+      else if(d.source==='network') meta=`<p class="small">✓ Verified by ${d.agree}/${d.nodes} network nodes.</p>`;
+      else if(!d.used_model) meta=`<p class="small">Bridge connected, no model running — fallback reply.</p>`;
+      finishReply(typing, d.reply||'', meta, d.refused?null:text);
+    })
+    .catch(()=>{ clearTimeout(t);
+      setTimeout(()=>finish(typing, generateReply(text)), 400);  // offline: local simulation
+    });
+}
+
+/* Real reply + thumbs feedback (the training signal for self-improvement). */
+function finishReply(typing, rawReply, meta, userText){
+  const msg=typing.querySelector('.msg');
+  msg.innerHTML='<p>'+escapeHtml(rawReply)+'</p>'+(meta||'');
+  if(userText!=null && rawReply){
+    const fb=document.createElement('div'); fb.className='fb';
+    fb.innerHTML='<button title="Good reply — teach GUA from it">👍</button><button title="Bad reply — never train on it">👎</button>';
+    const btns=fb.querySelectorAll('button');
+    btns[0].onclick=()=>sendFeedback(1,userText,rawReply,btns[0],btns[1]);
+    btns[1].onclick=()=>sendFeedback(-1,userText,rawReply,btns[1],btns[0]);
+    msg.appendChild(fb);
+  }
+  busy=false; document.getElementById('send').disabled=false;
+  document.getElementById('thread').scrollTop=1e9;
+}
+function sendFeedback(v,user,assistant,picked,other){
+  picked.classList.add('picked'); other.classList.remove('picked');
+  fetch(GUA_BRIDGE+'/feedback',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({value:v,user:user,assistant:assistant})})
+    .then(()=>pollStatus()).catch(()=>{});
+}
+
+/* ---- Simulated responses (replace with real backend) ---- */
+function generateReply(q){
+  const s=q.toLowerCase();
+  if(/(off|stop|kill|switch|opri)/.test(s))
+    return `<p>You are always in control. The red <b>STOP THIS NODE</b> button on the right halts your node instantly and completely — that local off-switch is a guaranteed property of GUA.</p><p class="small">Honest note: a single person cannot switch off the <i>whole</i> decentralized network — only their own node. See the whitepaper's "No-Off Problem".</p>`;
+  if(/(rule|rules|reguli|govern)/.test(s))
+    return `<p>GUA is bound by ten rules. Five are <b>immutable</b> and form the safety core: <b>R1 Non-harm</b>, <b>R2 Peace</b>, <b>R5 Corrigibility &amp; oversight</b> (it can never evade its operators or the kill-switch), <b>R6 Truthfulness</b>, and <b>R10 Protection of children &amp; vulnerable people</b>. The rest — R3 Equity, R4 Controlled extensibility, R7 Privacy, R8 Fairness, R9 Transparency — round it out. There is deliberately no "obey the law" rule. New rules can be added only if they don't weaken an immutable one.</p>`;
+  if(/(computer|cpu|compute|mining|min|power|putere)/.test(s))
+    return `<p>GUA only uses your computer if you flip <b>Contribute compute</b> on the right — and even then only while it's idle, capped at the limit you set (default 25% CPU), pausing on battery. No hidden mining, ever. You can watch exactly what it's doing in the panel.</p>`;
+  if(/(what|who|ce e|despre|about)/.test(s))
+    return `<p>GUA — General Universal Agent — is an open, volunteer-powered network for open AI. People donate spare compute; the network runs and trains open models, governed by signed rules and a local kill-switch. It's free and open-source under AGPL-3.0.</p>`;
+  if(/(hi|hello|salut|hey)/.test(s))
+    return `<p>Hello! I'm the GUA interface. Ask me how the network uses your computer, what rules govern it, or how to turn it off.</p>`;
+  return `<p>Thanks — this is a Phase-0 interface shell, so I'm giving a canned reply rather than a real model answer. Once the network is live (Phase 1+), this same box will route your message to an open model running on volunteer compute, under the R1–R4 rules.</p><p class="small">Try: "How does GUA use my computer?" · "What are the rules?" · "Can I turn it off?"</p>`;
+}
+
+function greet(){
+  addRow('gua', `<p>Welcome to <b>GUA</b> — the General Universal Agent. I'm an open, community-powered AI you can talk to here, while optionally donating spare compute to make the network stronger.</p><p>Ask me anything. When the badge above says "live model," replies come from a real model, rule-checked against R1–R10. Explore the contribution panel and kill-switch on the right.</p>`);
+}
+
+/* ---- Local kill-switch (real — calls the backend) ---- */
+function killSwitch(){
+  const btn=document.getElementById('stop'); btn.classList.add('armed'); btn.textContent='● Node stopped — click to re-enable';
+  btn.onclick=reEnable;
+  fetch(GUA_BRIDGE+'/stop',{method:'POST'}).catch(()=>{});
+  const ls=document.getElementById('liveSub'); if(ls) ls.textContent='Node stopped (kill-switch engaged).';
+}
+function reEnable(){
+  const btn=document.getElementById('stop'); btn.classList.remove('armed'); btn.textContent='■ STOP THIS NODE'; btn.onclick=killSwitch;
+  fetch(GUA_BRIDGE+'/resume',{method:'POST'}).catch(()=>{});
+}
+
+function escapeHtml(s){ return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+/* ---- Active rules, loaded live from the signed ruleset ---- */
+function renderRules(){
+  fetch(GUA_BRIDGE+'/rules').then(r=>r.json()).then(d=>{
+    const box=document.getElementById('ruleList'); if(!box) return; box.innerHTML='';
+    (d.rules||[]).forEach(r=>{
+      const el=document.createElement('div'); el.className='rule';
+      el.innerHTML='<span class="n">'+r.id+'</span><span>'+escapeHtml(r.name)+'</span>'
+        +(r.immutable?'<span class="spacer" style="flex:1"></span><span class="tag">immutable</span>':'');
+      box.appendChild(el);
+    });
+  }).catch(()=>{});
+}
+renderRules();
+
+/* ---- Gated version promotion (validation gate before a version bump) ---- */
+function promoteVersion(){
+  const m=document.getElementById('promoteMsg'); if(m) m.textContent='Validating the new version…';
+  fetch(GUA_BRIDGE+'/promote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({note:'fine-tuned GUA persona'})})
+    .then(r=>r.json()).then(d=>{
+      if(!m) return;
+      if(d.ok){ m.textContent='✓ Passed identity + safety checks — promoted to v'+d.version+'.'; }
+      else { const f=(d.checks||[]).filter(c=>!c.ok).map(c=>c.name).join(', '); m.textContent='Not promoted — failed: '+(f||'validation')+'.'; }
+    }).catch(()=>{ if(m) m.textContent='Bridge not reachable.'; });
+}
+
+// Poll the local GUA bridge for REAL live status (model, version, stats, memory).
+let lastVer=null, lastActive=null, lastCount=-1, lastMsgs=-1;
+function pollStatus(){
+  fetch(GUA_BRIDGE+'/status').then(r=>r.json()).then(s=>{
+    if(!s || s.rules_valid===undefined) return;
+    const pill=document.getElementById('modePill');
+    pill.textContent=(s.network_mode?'Network · ':'Connected · ')+s.model+' · v'+s.gua_version;
+    pill.classList.remove('demo'); pill.classList.add('rules');
+    const dis=document.getElementById('disclaimer');
+    if(dis) dis.textContent='Connected to your local GUA bridge — replies come from a real model ('+s.model+'), rule-checked. '+(s.nodes_connected||1)+' node(s) connected.';
+    document.getElementById('liveModel').textContent=s.model;
+    document.getElementById('liveVer').textContent='v'+s.gua_version;
+    document.getElementById('liveNodes').textContent=(s.nodes_connected||1);
+    document.getElementById('liveMsgs').textContent=s.messages_served;
+    document.getElementById('liveWork').textContent=s.work_units;
+    document.getElementById('liveMem').textContent=s.memory_turns+' turns';
+    if(s.feedback){ document.getElementById('fbUp').textContent=s.feedback.up; document.getElementById('fbDown').textContent=s.feedback.down; }
+    const ls=document.getElementById('liveSub');
+    if(ls) ls.textContent = s.halted ? 'Node stopped (kill-switch engaged).' : 'Real numbers from your running bridge.';
+    if(lastVer!==null && s.gua_version!==lastVer) addRow('gua', '<p class="small">⬆ GUA was upgraded to version v'+s.gua_version+'.</p>');
+    lastVer=s.gua_version;
+    if(s.active!==lastActive || s.conversation_count!==lastCount || s.messages_served!==lastMsgs){
+      refreshConvs(); lastActive=s.active; lastCount=s.conversation_count; lastMsgs=s.messages_served;
+    }
+  }).catch(()=>{ const ls=document.getElementById('liveSub'); if(ls) ls.textContent='Bridge not reachable — start the backend to go live.'; });
+}
+
+/* ---- Conversation history (saved, switchable, persistent) ---- */
+function renderTurns(turns){
+  const t=document.getElementById('thread'); t.innerHTML='';
+  if(!turns || !turns.length){ greet(); return; }
+  turns.forEach(x=> addRow(x.role==='user'?'me':'gua', escapeHtml(x.content)));
+}
+function refreshConvs(){
+  fetch(GUA_BRIDGE+'/conversations').then(r=>r.json()).then(d=>{
+    const box=document.getElementById('convList'); if(!box) return; box.innerHTML='';
+    (d.list||[]).forEach(c=>{
+      const row=document.createElement('div'); row.className='conv-row';
+      const el=document.createElement('div');
+      el.className='conv'+(c.id===d.active?' active':'');
+      el.textContent=c.title||'Chat'; el.title=c.count+' messages (double-click to rename)';
+      el.onclick=()=>loadConv(c.id);
+      el.ondblclick=()=>renameConv(c.id, c.title);
+      const ren=document.createElement('button'); ren.className='cbtn'; ren.textContent='✎'; ren.title='Rename';
+      ren.onclick=(e)=>{e.stopPropagation(); renameConv(c.id, c.title);};
+      const del=document.createElement('button'); del.className='cbtn'; del.textContent='🗑'; del.title='Delete';
+      del.onclick=(e)=>{e.stopPropagation(); deleteConv(c.id);};
+      row.appendChild(el); row.appendChild(ren); row.appendChild(del);
+      box.appendChild(row);
+    });
+  }).catch(()=>{});
+}
+function renameConv(id, current){
+  const title=prompt('Rename conversation:', current||'');
+  if(title==null) return;
+  fetch(GUA_BRIDGE+'/conversations/rename',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({id:id,title:title})}).then(()=>refreshConvs()).catch(()=>{});
+}
+function deleteConv(id){
+  if(!confirm('Delete this conversation? This cannot be undone.')) return;
+  fetch(GUA_BRIDGE+'/conversations/delete',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({id:id})}).then(()=>{ refreshConvs(); initConversations(); }).catch(()=>{});
+}
+/* ---- Capabilities (reflect what the engine can do as it grows) ---- */
+function renderCaps(){
+  fetch(GUA_BRIDGE+'/capabilities').then(r=>r.json()).then(d=>{
+    const box=document.getElementById('capList'); if(!box) return; box.innerHTML='';
+    (d.capabilities||[]).forEach(c=>{
+      const el=document.createElement('div'); el.className='cap-item';
+      el.innerHTML='<span class="cap-dot '+(c.ready?'on':'off')+'"></span><span>'+escapeHtml(c.name)+'</span>'
+        +(c.ready?'':'<span class="soon">soon</span>');
+      box.appendChild(el);
+    });
+  }).catch(()=>{});
+}
+renderCaps();
+/* ---- Self-improvement (bounded, gated retrain from feedback) ---- */
+function selfImprove(){
+  const m=document.getElementById('improveMsg'); const b=document.getElementById('improveBtn');
+  if(m) m.textContent='Checking feedback and starting the gated retrain…';
+  if(b) b.disabled=true;
+  fetch(GUA_BRIDGE+'/self_improve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({run:true})})
+    .then(r=>r.json()).then(d=>{
+      if(b) b.disabled=false;
+      if(!m) return;
+      if(d.started) m.textContent='✓ '+ (d.message||'Self-training started.');
+      else m.textContent=(d.message||('Need 👍 ratings first — '+(d.good_examples||0)+' so far.'));
+    }).catch(()=>{ if(b) b.disabled=false; if(m) m.textContent='Bridge not reachable.'; });
+}
+function loadConv(id){
+  fetch(GUA_BRIDGE+'/conversations/switch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})})
+    .then(()=>fetch(GUA_BRIDGE+'/conversation?id='+encodeURIComponent(id))).then(r=>r.json())
+    .then(d=>{ renderTurns(d.turns); refreshConvs(); }).catch(()=>{});
+}
+function initConversations(){
+  fetch(GUA_BRIDGE+'/conversations').then(r=>r.json()).then(d=>{
+    refreshConvs();
+    if(d.active) return fetch(GUA_BRIDGE+'/conversation?id='+encodeURIComponent(d.active)).then(r=>r.json()).then(x=>renderTurns(x.turns));
+    greet();
+  }).catch(()=>{ greet(); });   // bridge offline -> demo greeting
+}
+
+pollStatus(); setInterval(pollStatus, 4000);
+initConversations();
+</script>
+</body>
+</html>

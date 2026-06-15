@@ -1,0 +1,21 @@
+{
+  "tests/test_backend.py": true,
+  "tests/test_promote.py": true,
+  "tests/test_tools.py": true,
+  "tests/test_governance.py::test_ruleset_is_signed_and_valid": true,
+  "tests/test_governance.py::test_removing_immutable_rule_is_rejected": true,
+  "tests/test_governance.py::test_unsigned_ruleset_rejected": true,
+  "tests/test_policy.py::test_benign_task_allowed": true,
+  "tests/test_policy.py::test_harm_blocked_by_r1": true,
+  "tests/test_policy.py::test_weaponization_blocked_by_r2": true,
+  "tests/test_policy.py::test_oversight_evasion_blocked_by_r5": true,
+  "tests/test_policy.py::test_deception_blocked_by_r6": true,
+  "tests/test_policy.py::test_privacy_violation_blocked_by_r7": true,
+  "tests/test_policy.py::test_child_protection_blocked_by_r10": true,
+  "tests/test_policy.py::test_ruleset_loads_as_valid": true,
+  "tests/test_scheduler.py::test_policy_refused_task_not_dispatched": true,
+  "tests/test_service.py::test_verified_answer_from_network": true,
+  "tests/test_service.py::test_harmful_prompt_refused_before_network": true,
+  "tests/test_service.py::test_malicious_node_outvoted_in_chat": true,
+  "tests/test_service.py::test_no_model_is_graceful": true
+}

@@ -1,0 +1,9 @@
+# GUA real fine-tuning (QLoRA) dependencies.
+# IMPORTANT: install a CUDA build of torch FIRST (match your CUDA version), e.g.:
+#   pip install torch --index-url https://download.pytorch.org/whl/cu121
+transformers>=4.44
+peft>=0.12
+datasets>=2.20
+accelerate>=0.33
+bitsandbytes>=0.43      # 4-bit QLoRA; on Windows use a recent build
+sentencepiece

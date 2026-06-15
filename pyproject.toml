@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gua"
+version = "0.1.0"
+description = "GUA — General Universal Agent: an open, volunteer-powered, rule-governed AI network with a guaranteed kill-switch."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "AGPL-3.0-or-later" }
+authors = [{ name = "Alexandru Ciobanu" }]
+keywords = ["ai", "decentralized", "federated-learning", "volunteer-compute", "open-weights", "governance"]
+dependencies = [
+    "cryptography>=42.0",
+    "PyYAML>=6.0",
+    "flask>=3.0",
+    "requests>=2.31",
+    "ddgs>=6.0",
+    "numpy>=1.24",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.urls]
+Homepage = "https://github.com/REPLACE_ME/gua"
+Whitepaper = "https://github.com/REPLACE_ME/gua/blob/main/WHITEPAPER.md"
+
+# The project is run via the launchers (start_gua.bat, run_node.bat,
+# demo_network.bat) and module scripts (python network/node_daemon.py).
+# This file provides metadata + a single place to pin dependencies; it does not
+# yet install console entry points (the modules live across top-level folders).
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
