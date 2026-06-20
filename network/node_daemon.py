@@ -60,16 +60,26 @@ def parse_peers(s: str | None) -> list[tuple[str, int]]:
 
 class GuaNode:
     def __init__(self, node_id: str, host: str = "0.0.0.0", port: int = 9075,
-                 data_dir: str | None = None, peers=None):
+                 data_dir: str | None = None, peers=None, advertise: str | None = None):
         self.node_id = node_id
         self.host = host
         self.port = port
+        # The address OTHER nodes should use to reach us (our public/LAN host:port).
+        # Without it, a peer we dial can't dial us back or gossip us onward — so
+        # this is what lets the mesh self-assemble from a single bootstrap node.
+        self.advertise: tuple[str, int] | None = None
+        if advertise:
+            h, _, p = advertise.rpartition(":")
+            self.advertise = (h or "127.0.0.1", int(p))
         self.store = BlobStore(data_dir or f".gua-node/{port}")
         self.ledger = ImprovementLedger(self.store.root / "improvements.json")
         self.peers: set[tuple[str, int]] = set(peers or [])
         self._srv: socket.socket | None = None
         self._running = False
         self._lock = threading.Lock()
+
+    def _advertise_list(self) -> list:
+        return [[self.advertise[0], self.advertise[1]]] if self.advertise else []
 
     # -- server -------------------------------------------------------------
     def start(self) -> int:
@@ -127,7 +137,9 @@ class GuaNode:
             with self._lock:
                 self.peers |= incoming
                 self.peers.discard((self.host, self.port))
-                known = [[h, p] for h, p in self.peers]
+                if self.advertise:
+                    self.peers.discard(self.advertise)
+                known = [[h, p] for h, p in self.peers] + self._advertise_list()
             return {"type": "peers", "peers": known}
         if mt == "improvements":
             with self._lock:
@@ -181,9 +193,10 @@ class GuaNode:
                 entries = (imp.get("entries", []) or [])[:MAX_IMPROVEMENTS_IN]
                 with self._lock:
                     self.ledger.merge(entries)   # each is signature-verified inside
-            # gossip: exchange peer lists
+            # gossip: exchange peer lists. Include OUR advertised address so the
+            # peer can reach us back and gossip us onward (mesh self-assembly).
             with self._lock:
-                mine = [[h, p] for h, p in self.peers] + [[host, port]]
+                mine = [[h, p] for h, p in self.peers] + [[host, port]] + self._advertise_list()
             send_msg(sock, {"type": "peers", "peers": mine})
             got = recv_msg(sock) or {}
             with self._lock:
