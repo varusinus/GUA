@@ -28,6 +28,7 @@ echo Using model: %GUA_MODEL_NAME%
 
 set GUA_USE_NETWORK=1
 set GUA_NODES=1
+set GUA_LLM_JUDGE=1
 
 REM --- stop any old GUA servers so the new one actually takes over ---
 echo Stopping any previous GUA servers...

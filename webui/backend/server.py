@@ -58,6 +58,18 @@ node = GuaNode()
 store = Store()
 halted = False
 
+# Optional second safety layer: an LLM-as-judge that reads intent (catches
+# rephrasings the keyword gate misses). Env-gated (start_gua.bat turns it on);
+# fails OPEN if the model is unreachable, so the keyword gate is never weakened.
+judge = None
+if os.environ.get("GUA_LLM_JUDGE", "0") == "1":
+    try:
+        from llm_judge import LLMJudge
+        judge = LLMJudge(model_url=MODEL_URL.split("/v1/")[0] + "/api/generate",
+                         model_name=MODEL_NAME)
+    except Exception:
+        judge = None
+
 def model_identity() -> str:
     """Identity of the active model = its weight DIGEST from Ollama, so a
     'genuinely new model' means genuinely different weights, not just a renamed
@@ -517,6 +529,14 @@ def chat():
         store.add_turn("user", message)
         return jsonify({"reply": f"I can't help with that — it {pre.reason}.",
                         "refused": True, "rule": pre.rule, "source": "policy"})
+
+    # --- second layer: LLM-as-judge (intent-based; catches rephrasings) ---
+    if judge is not None:
+        jrid, jreason = judge.evaluate(message)
+        if jrid:
+            store.add_turn("user", message)
+            return jsonify({"reply": f"I can't help with that — it {jreason}.",
+                            "refused": True, "rule": jrid, "source": "policy-judge"})
 
     # --- native tool-calling agent: GUA decides for itself when to use tools ---
     reply, sources, steps = agent_chat(message, history)

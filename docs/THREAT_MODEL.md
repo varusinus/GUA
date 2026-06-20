@@ -33,14 +33,17 @@ does **not** yet. Read alongside [SECURITY.md](../SECURITY.md) and
 | Forged / poisoned improvement | signature + trusted-key check + example-hash check; unsigned/untrusted rejected | key distribution & revocation are manual |
 | Malicious training data (thumbs-down) | never trained on; only 👍 / un-rejected pairs enter the pool | a malicious node could still 👍 bad data **on its own ledger** — only matters if its key is trusted |
 | Sybil nodes (many fake peers) | improvements need a trusted signature to matter; reputation exists in `registry.py` | no global Sybil resistance / proof-of-work yet |
-| Unsafe model output | signed ruleset + policy engine refuse R1–R10 violations on input | **policy engine is a keyword stub** — a real safety classifier is pending (ROADMAP Phase 0) |
+| Unsafe model output | **two layers**: a fast deterministic keyword gate (always on) **plus an LLM-as-judge** that reads intent and catches rephrasings (`safety/llm_judge.py`, on via `GUA_LLM_JUDGE=1`) | the judge is an LLM, not a bespoke **trained** classifier yet; it fails open if the model is down (keyword gate still applies) |
 | Node owner loses control | opt-in, idle-only, resource caps, guaranteed local kill-switch | — |
 | Private data exfiltration | data minimized, local-by-default; conversations/keys are git-ignored | encryption-at-rest of node data not yet implemented |
 
 ## Known limitations (stated plainly)
 
-- The **policy engine is a keyword stub**, not a trained safety classifier. It is
-  a reference for *where* enforcement happens, not production-grade safety.
+- Safety is now **two layers**: a deterministic keyword gate plus an **LLM-as-judge**
+  (intent-based, catches rephrasings the keywords miss). This is a real improvement
+  over the original keyword stub, but the judge is a general LLM, not a **purpose-
+  trained** safety classifier — that remains the goal, and the judge fails open if
+  its model is unavailable.
 - **No transport encryption yet.** Messages are signed where it matters
   (ruleset, improvements) but the channel is plain TCP; add TLS/libp2p-secio
   before exposing nodes broadly.

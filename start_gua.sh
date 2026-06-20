@@ -18,7 +18,7 @@ for m in "gua" "gua-ft" "gua-smart" "gua-self"; do
   ollama list 2>/dev/null | grep -qi "$m" && MODEL="$m"
 done
 echo "Using model: $MODEL"
-export GUA_MODEL_NAME="$MODEL" GUA_USE_NETWORK=1 GUA_NODES=1
+export GUA_MODEL_NAME="$MODEL" GUA_USE_NETWORK=1 GUA_NODES=1 GUA_LLM_JUDGE=1
 
 echo "Stopping any previous GUA servers..."
 pkill -f "http.server 8000" 2>/dev/null || true
