@@ -95,6 +95,31 @@ def test_improvements_propagate_over_tcp(tmp_path):
         a.stop(); b.stop()
 
 
+def test_bootstrap_discovery_propagates_peers(tmp_path):
+    # A is the bootstrap. B and C each only know A. Via gossip + self-advertised
+    # addresses, C should discover B WITHOUT ever contacting B directly.
+    a = _node(tmp_path, "A"); a.advertise = (HOST, a.port)
+    b = _node(tmp_path, "B"); b.advertise = (HOST, b.port)
+    c = _node(tmp_path, "C"); c.advertise = (HOST, c.port)
+    try:
+        b.sync_from(HOST, a.port)          # A learns B's advertised address
+        c.sync_from(HOST, a.port)          # A tells C about B
+        assert (HOST, b.port) in c.peers   # C discovered B transitively via the bootstrap
+        assert (HOST, b.port) in a.peers   # and A knows B too
+    finally:
+        a.stop(); b.stop(); c.stop()
+
+
+def test_no_advertise_means_no_self_gossip(tmp_path):
+    # default (no advertise) keeps the old behavior: a node doesn't inject its
+    # own address into gossip
+    n = _node(tmp_path, "A")
+    try:
+        assert n._advertise_list() == []
+    finally:
+        n.stop()
+
+
 def test_ping_reports_model_count(tmp_path):
     import socket
     from transport import send_msg, recv_msg

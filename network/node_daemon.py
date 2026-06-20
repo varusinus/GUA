@@ -277,6 +277,9 @@ def _main() -> None:
     ap.add_argument("--port", type=int, default=9075)
     ap.add_argument("--data", default=None, help="data dir (default .gua-node/<port>)")
     ap.add_argument("--peers", default="", help="bootstrap peers host:port,host:port")
+    ap.add_argument("--advertise", default=None,
+                    help="the host:port other nodes should use to reach you "
+                         "(your public/LAN address) — enables auto-discovery")
     ap.add_argument("--seed-file", default=None, help="store this file as the model")
     ap.add_argument("--seed-text", default=None, help="store this text as the model")
     ap.add_argument("--key", default="gua-model", help="logical model name to seed")
@@ -286,7 +289,8 @@ def _main() -> None:
     args = ap.parse_args()
 
     node = GuaNode(args.id or f"gua-{args.port}", host=args.host, port=args.port,
-                   data_dir=args.data, peers=parse_peers(args.peers))
+                   data_dir=args.data, peers=parse_peers(args.peers),
+                   advertise=args.advertise)
 
     if args.seed_file:
         data = Path(args.seed_file).read_bytes()

@@ -95,6 +95,14 @@ second (Hivemind), self-improvement last (gated).** Each stage is useful alone.
 ## 3. Build order (concrete, tied to the existing ROADMAP)
 
 **Stage A — make the swarm real (Phase 1).**
+0. ✅ **Done (first increment): bootstrap auto-discovery.** A node advertises its
+   own address (`--advertise host:port`) and gossips it. Point a new node at a
+   single bootstrap peer (`--peers host:port`) and it learns the *whole* mesh
+   transitively — verified by `test_bootstrap_discovery_propagates_peers`. This
+   removes the need to hand-configure every peer. Still pending below: a
+   **Kademlia DHT** (so there's no fixed bootstrap) and **NAT traversal / hole
+   punching** (so home nodes behind routers are reachable without port-forwarding)
+   — that NAT part is the genuinely hard piece (py-libp2p is still experimental).
 1. Swap the bootstrap coordinator for **libp2p + DHT**; keep signed messages.
 2. Put `replication.py` on top of the DHT: blobs chunked, announced, fetched by
    hash; `rebalance()` driven by real "under-replicated" events.
